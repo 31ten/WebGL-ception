@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body id="page">
+    <script type="text/javascript" src="three.min.js"></script>
+    <script type="text/javascript" src="CSS3DRenderer.js"></script>
+    <script type="text/javascript">
+        var queryDict = {}
+        location.search.substr(1).split("&").forEach(function(item) {
+            queryDict[item.split("=")[0]] = item.split("=")[1]
+        })
+
+
+        // THIS IS THE NUMBER OF WEBGL CONTEXTS, IF YOU WANT TO SEE MORE FRAMES JUST PLAY WITH IT
+        var numberOfWebGlContexts = 7;
+
+        if (!!!queryDict.toto || queryDict.toto < numberOfWebGlContexts) {
+
+
+            // CONTAINER
+            var container;
+            // CAMERA
+            var camera;
+            //SCENE
+            var plane;
+            var sccScene;
+            //RENDERER
+            var renderer;
+            var cssRenderer;
+
+            var mouseX = 0;
+            var mouseY = 0;
+            var box;
+
+            my_width = window.innerWidth;
+            my_height = window.innerHeight;
+
+            var windowHalfX = window.innerWidth / 2;
+            var windowHalfY = window.innerHeight / 2;
+
+            init();
+            animate();
+
+            function my_distance(vec1, vec2) {
+                var diff_x = vec1.x - vec2.x;
+                var diff_y = vec1.y - vec2.y;
+                var diff_z = vec1.z - vec2.z;
+
+                return Math.sqrt(Math.pow(diff_x, 2) + Math.pow(diff_y, 2) + Math.pow(diff_z, 2));
+            }
+
+            function is_in_front(vec) {
+                if (vec.z > -20 && Math.abs(vec.y) < 160 && Math.abs(vec.x) < 160) {
+                    return true;
+                }
+                return false;
+            }
+
+            // Initialise webgl context
+            function init() {
+                camera = new THREE.PerspectiveCamera(60, my_width / my_height, 1, 2000);
+                camera.position.z = 300;
+
+                scene = new THREE.Scene();
+                cssScene = new THREE.Scene();
+
+                var planeGeometry = new THREE.PlaneBufferGeometry(300, 300);
+                var planeMaterial = new THREE.MeshLambertMaterial();
+                //sphereMaterial.opacity   = 0;
+                planeMaterial.color.set('black');
+                planeMaterial.opacity = 0;
+                planeMaterial.blending = THREE.NoBlending;
+
+                plane = new THREE.Mesh(planeGeometry, planeMaterial);
+
+                // Adding the 40 boxes      
+                for (var i = 0; i < 40; i++) {
+                    var boxGeometry = new THREE.BoxGeometry(20, 20, 20);
+                    var boxMaterial = new THREE.MeshLambertMaterial({
+                        color: 0x52c7dc,
+                        wireframe: true
+                    });
+                    box = new THREE.Mesh(boxGeometry, boxMaterial);
+
+                    var my_random_position = {};
+
+                    my_random_position.y = 288 - 16 * i;
+
+                    var ortho = {}
+                    ortho.x = 0;
+                    ortho.y = my_random_position.y;
+                    ortho.z = 0;
+                    
+
+                    do {
+                        my_random_position.x = Math.pow(-1, i) * Math.abs(Math.pow(-1, Math.random() > 0.5 ? 1 : 2) * Math.random() * 400);
+                        my_random_position.z = Math.pow(-1, Math.random() > 0.5 ? 1 : 2) * Math.random() * 100;
+                    } while (my_distance(my_random_position, ortho) > 400 || my_distance(my_random_position, ortho) < 50 || is_in_front(my_random_position));
+
+
+                    box.position.set(my_random_position.x, my_random_position.y, my_random_position.z);
+
+
+                    scene.add(box);
+
+                }
+
+                var element = document.createElement('iframe');
+                var toto = 'http://localhost:8888/webgl-embed/?toto=' + (parseInt(queryDict.toto) + 1);
+                // IF TOTO IS NOT DEFINED
+                if (!!!queryDict.toto) {
+                    var toto = 'http://localhost:8888/webgl-embed/?toto=1';
+                }
+                //toto="http://webgl.31ten.network";
+                element.src = toto;
+                var cssObject = new THREE.CSS3DObject(element);
+                cssObject.element.width = 300;
+                cssObject.element.height = 300;
+
+                // Adding plane && iframe css3 object
+                scene.add(plane);
+                cssScene.add(cssObject);
+
+                // CSS renderer
+                cssRenderer = new THREE.CSS3DRenderer();
+                cssRenderer.setSize(my_width, my_height);
+                document.body.appendChild(cssRenderer.domElement);
+
+                // WebGL renderer
+                renderer = new THREE.WebGLRenderer({
+                    alpha: true
+                });
+                renderer.domElement.style.position = 'absolute';
+                renderer.domElement.style.top = 0;
+                renderer.domElement.style.pointerEvents = 'none';
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(my_width, my_height);
+                document.body.appendChild(renderer.domElement);
+
+                // Mouse move event
+                document.addEventListener('mousemove', onDocumentMouseMove, false);
+            }
+
+            // animate
+            function animate() {
+                requestAnimationFrame(animate);
+                render();
+            }
+
+            function onDocumentMouseMove(event) {
+                mouseX = (event.clientX - windowHalfX);
+                mouseY = (event.clientY - windowHalfY);
+            }
+
+            function render() {
+                camera.position.x += (mouseX - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY - camera.position.y) * 0.05;
+                // scene.position is (0,0,0) so we tell the camera to always look at the center of the universe
+                camera.lookAt(scene.position);
+
+                // We render the 2 scenes on one another
+                renderer.render(scene, camera);
+                cssRenderer.render(cssScene, camera);
+            }
+        }
+    </script>
+</body>
+
+</html>
